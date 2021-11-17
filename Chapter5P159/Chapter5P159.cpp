@@ -252,18 +252,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		XMFLOAT2 uv;//UV座標
 	};
 
-	//Vertex  vertices[] = {
-	//	{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
-	//	{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
-	//	{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
-	//	{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
-	//};
 	Vertex  vertices[] = {
-		{	{-0.5f,-0.7f,0.0f} ,	{0,1}},	//左下
+		{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
 		{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
-		{	{0.5f,-0.7f,0.0f} ,	{1,1}},	//右下
+		{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
 		{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
 	};
+	//Vertex  vertices[] = {
+	//	{	{-0.25f,-0.5f,0.0f} ,	{0,1}},	//左下
+	//	{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
+	//	{	{0.5f,-0.7f,0.0f} ,	{1,1}},	//右下
+	//	{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
+	//};
 	unsigned short indices[]
 		= {
 				0, 1, 2,
@@ -540,6 +540,94 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	scissorrect.left = 0; //  切り抜き左座標
 	scissorrect.right = scissorrect.left + window_width;  //  切り抜き右座標
 	scissorrect.bottom = scissorrect.top + window_height; //  切り抜き下座標
+
+	// テクスチャ
+	struct TexRGBA
+	{
+		unsigned char R, G, B, A;
+	};
+	std::vector<TexRGBA> texturedata(256 * 256);
+	//for (int i = 0; i < texturedata.capacity(); i++){
+	//	texturedata[i].R = rand() % 256;
+	//	texturedata[i].G = rand() % 256;
+	//	texturedata[i].B = rand() % 256;
+	//}
+	
+	for (auto& rgba : texturedata) {
+		rgba.R = rand() % 256;
+		rgba.G = rand() % 256;
+		rgba.B = rand() % 256;
+		rgba.A = 255;//アルファは1.0
+	}
+
+	// WriteToSubresourceで転送するためのヒープ設定
+	D3D12_HEAP_PROPERTIES texHeapprop = {};// 特殊な設定なのでDEFAULTでもUPLOADでもない
+	texHeapprop.Type = D3D12_HEAP_TYPE_CUSTOM;// ライトバック
+	texHeapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;// 転送はL0、つまりCPU側から直接行う
+	texHeapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;// 単一アダプターのため0
+	texHeapprop.CreationNodeMask = 0;
+	texHeapprop.VisibleNodeMask = 0;
+
+	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;//RGBAフォーマット
+	resDesc.Width = 256;//幅
+	resDesc.Height = 256;//高さ
+	resDesc.DepthOrArraySize =1;//2Dで配列でもないので１
+	resDesc.SampleDesc.Count = 1;//通常テクスチャなのでアンチェリしない
+	resDesc.SampleDesc.Quality = 0;//
+	resDesc.MipLevels =1;//ミップマップしないのでミップ数は１つ
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;//2Dテクスチャ用
+	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;//レイアウトについては決定しない
+	resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;//とくにフラグなし
+
+	ID3D12Resource* texbuff = nullptr;
+	result = _dev->CreateCommittedResource(&texHeapprop, D3D12_HEAP_FLAG_NONE, // 特に指定なし
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, // テクスチャ用指定
+		nullptr, 
+		IID_PPV_ARGS(&texbuff));
+	if (!SUCCEEDED(result)) {
+		DebugOutputFormatString("FAILED CreateCommittedResource on texHeapprop");
+		return -1;
+	}
+	result = texbuff->WriteToSubresource(
+		0, nullptr, // 全領域へコピー
+		texturedata.data(),    // 元データアドレス
+		sizeof(TexRGBA) * 256, // 1ラインサイズ
+		sizeof(TexRGBA) * texturedata.size() // 全サイズ
+	);
+	if (!SUCCEEDED(result)) {
+		DebugOutputFormatString("FAILED WriteToSubresource");
+		return -1;
+	}
+
+	ID3D12DescriptorHeap* texDescHeap = nullptr;
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	// シェーダーから見えるように
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	// マスクは0
+	descHeapDesc.NodeMask = 0;
+	// ビューは今のところ1つだけ
+	descHeapDesc.NumDescriptors = 1;
+	// シェーダーリソースビュー用
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	// 生成
+	result = _dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&texDescHeap));
+	if (!SUCCEEDED(result)) {
+		DebugOutputFormatString("FAILED CreateDescriptorHeap");
+		return -1;
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;           // RGBA（0.0f～1.0fに正規化）
+	srvDesc.Shader4ComponentMapping =        D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;      // 後述
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
+		
+	_dev->CreateShaderResourceView(texbuff, //ビューと関連付けるバッファ
+		&srvDesc, //先ほど設定したテクスチャ設定情報
+		texDescHeap->GetCPUDescriptorHandleForHeapStart()//ヒープのどこに割り当てるか
+	);
+	
 
 	MSG msg = {};
 	while (true) {
