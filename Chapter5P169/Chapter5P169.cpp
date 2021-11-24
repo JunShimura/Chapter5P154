@@ -496,6 +496,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
+#pragma region Chapter5.8.3
 	// Chapter5.8.3--->
 
 	D3D12_DESCRIPTOR_RANGE descTblRange = {};
@@ -514,6 +515,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootSignatureDesc.NumParameters = 1;        // ルートパラメーター数
 
 	//<---
+#pragma endregion
+
+#pragma region Chapter5.8.4
+	// Chapter5.8.4--->
+	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//横繰り返し
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//縦繰り返し
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//奥行繰り返し
+	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;//ボーダーの時は黒
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;//線形補間
+	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;//ミップマップ最大値
+	samplerDesc.MinLOD = 0.0f;//ミップマップ最小値
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;//オーバーサンプリングの際リサンプリングしない？
+	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダからのみ可視
+
+	rootSignatureDesc.pStaticSamplers = &samplerDesc;
+	rootSignatureDesc.NumStaticSamplers = 1;
+	//<---
+#pragma endregion
 
 	ID3DBlob* rootSigBlob = nullptr;
 	result = D3D12SerializeRootSignature(
@@ -567,19 +587,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	{
 		unsigned char R, G, B, A;
 	};
-	std::vector<TexRGBA> texturedata(256 * 256);
-	//for (int i = 0; i < texturedata.capacity(); i++){
-	//	texturedata[i].R = rand() % 256;
-	//	texturedata[i].G = rand() % 256;
-	//	texturedata[i].B = rand() % 256;
-	//}
+	const int TEX_WIDTH = 256;
+	const int TEX_HEIGHT = 256;
 
-	for (auto& rgba : texturedata) {
-		rgba.R = rand() % 256;
-		rgba.G = rand() % 256;
-		rgba.B = rand() % 256;
-		rgba.A = 255;//アルファは1.0
+	std::vector<TexRGBA> texturedata(TEX_WIDTH*TEX_HEIGHT);
+	for (int iy = 0; iy < TEX_HEIGHT; iy++){
+		for (int ix = 0; ix < TEX_WIDTH; ix++) {
+			int i = ix + iy * TEX_WIDTH;
+			texturedata[i].R = i*256/TEX_WIDTH;
+			texturedata[i].G = 255;
+			texturedata[i].B = 255;
+			texturedata[i].A = 255;
+		}
 	}
+
+	//for (auto& rgba : texturedata) {
+	//	rgba.R = rand() % 256;
+	//	rgba.G = rand() % 256;
+	//	rgba.B = rand() % 256;
+	//	rgba.A = 255;//アルファは1.0
+	//}
 
 	// WriteToSubresourceで転送するためのヒープ設定
 	D3D12_HEAP_PROPERTIES texHeapprop = {};// 特殊な設定なのでDEFAULTでもUPLOADでもない
@@ -591,8 +618,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;//RGBAフォーマット
-	resDesc.Width = 256;//幅
-	resDesc.Height = 256;//高さ
+	resDesc.Width = TEX_WIDTH;//幅	元は256　 20211124
+	resDesc.Height = TEX_HEIGHT;//高さ 元は256 20211124
 	resDesc.DepthOrArraySize = 1;//2Dで配列でもないので１
 	resDesc.SampleDesc.Count = 1;//通常テクスチャなのでアンチェリしない
 	resDesc.SampleDesc.Quality = 0;//
@@ -705,6 +732,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
 		// 頂点インデックス
 		_cmdList->IASetIndexBuffer(&ibView);
+		
+		// Chapter5.9--->
+		_cmdList->SetGraphicsRootSignature(rootsignature);
+		_cmdList->SetDescriptorHeaps(1, &texDescHeap);
+		_cmdList->SetGraphicsRootDescriptorTable(0, texDescHeap->GetGPUDescriptorHandleForHeapStart());
+		// <---
+				
 		//　頂点を描画
 		_cmdList->DrawIndexedInstanced(sizeof(indices) / sizeof(indices[0]), 1, 0, 0, 0);
 		//_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
