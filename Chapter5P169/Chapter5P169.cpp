@@ -252,22 +252,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		XMFLOAT2 uv;//UV座標
 	};
 
-	Vertex  vertices[] = {
-		{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
-		{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
-		{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
-		{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
-	};
 	//Vertex  vertices[] = {
-	//	{	{-0.25f,-0.5f,0.0f} ,	{0,1}},	//左下
+	//	{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
 	//	{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
-	//	{	{0.5f,-0.7f,0.0f} ,	{1,1}},	//右下
+	//	{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
 	//	{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
 	//};
+
+	Vertex  vertices[] = {
+	{ {-0.25f, -0.7f, 0.0f}, { 0,1 }},	//左下
+	{ {-0.4f,0.7f,0.0f} ,	{0,0} },	//左上
+	{ {0.4f,-0.7f,0.0f} ,	{0.125f,0.125f} },	//右下
+	{ {0.4f,0.7f,0.0f} ,		{1,0} }		//右上
+	};
 	unsigned short indices[]
 		= {
 				0, 1, 2,
-				2, 1, 3
+				//2, 1, 3
 	};
 
 
@@ -590,11 +591,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int TEX_WIDTH = 256;
 	const int TEX_HEIGHT = 256;
 
-	std::vector<TexRGBA> texturedata(TEX_WIDTH*TEX_HEIGHT);
-	for (int iy = 0; iy < TEX_HEIGHT; iy++){
+	std::vector<TexRGBA> texturedata(TEX_WIDTH * TEX_HEIGHT);
+	for (int iy = 0; iy < TEX_HEIGHT; iy++) {
 		for (int ix = 0; ix < TEX_WIDTH; ix++) {
 			int i = ix + iy * TEX_WIDTH;
-			texturedata[i].R = i*256/TEX_WIDTH;
+			texturedata[i].R = i % 32 / 16 * 255;
 			texturedata[i].G = 255;
 			texturedata[i].B = 255;
 			texturedata[i].A = 255;
@@ -732,13 +733,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
 		// 頂点インデックス
 		_cmdList->IASetIndexBuffer(&ibView);
-		
+
 		// Chapter5.9--->
 		_cmdList->SetGraphicsRootSignature(rootsignature);
 		_cmdList->SetDescriptorHeaps(1, &texDescHeap);
 		_cmdList->SetGraphicsRootDescriptorTable(0, texDescHeap->GetGPUDescriptorHandleForHeapStart());
 		// <---
-				
+
 		//　頂点を描画
 		_cmdList->DrawIndexedInstanced(sizeof(indices) / sizeof(indices[0]), 1, 0, 0, 0);
 		//_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
