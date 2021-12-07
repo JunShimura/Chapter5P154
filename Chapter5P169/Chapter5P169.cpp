@@ -6,6 +6,7 @@
 #include<dxgi1_6.h>
 #include <d3dcompiler.h>
 #include<vector>
+#include  <DirectXTex.h>
 #ifdef _DEBUG
 #include<iostream>
 #endif
@@ -13,6 +14,7 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+#pragma comment  (lib,  "DirectXTex.lib")
 
 using namespace std;
 using namespace DirectX;
@@ -252,23 +254,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		XMFLOAT2 uv;//UV座標
 	};
 
-	//Vertex  vertices[] = {
-	//	{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
-	//	{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
-	//	{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
-	//	{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
-	//};
-
 	Vertex  vertices[] = {
-	{ {-0.25f, -0.7f, 0.0f}, { 0,1 }},	//左下
-	{ {-0.4f,0.7f,0.0f} ,	{0,0} },	//左上
-	{ {0.4f,-0.7f,0.0f} ,	{0.125f,0.125f} },	//右下
-	{ {0.4f,0.7f,0.0f} ,		{1,0} }		//右上
+		{	{-0.4f,-0.7f,0.0f} ,	{0,1}},	//左下
+		{	{-0.4f,0.7f,0.0f} ,	{0,0}},	//左上
+		{	{0.4f,-0.7f,0.0f} ,	{1,1}},	//右下
+		{	{0.4f,0.7f,0.0f} ,	{1,0}}	//右上
 	};
+
+	//Vertex  vertices[] = {
+	//{ {-0.25f, -0.7f, 0.0f}, { 0,1 }},	//左下
+	//{ {-0.4f,0.7f,0.0f} ,	{0,0} },	//左上
+	//{ {0.4f,-0.7f,0.0f} ,	{0.125f,0.125f} },	//右下
+	//{ {0.4f,0.7f,0.0f} ,		{1,0} }		//右上
+	//};
 	unsigned short indices[]
 		= {
 				0, 1, 2,
-				//2, 1, 3
+				2, 1, 3
 	};
 
 
@@ -584,23 +586,32 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	scissorrect.bottom = scissorrect.top + window_height; //  切り抜き下座標
 
 	// テクスチャ
-	struct TexRGBA
-	{
-		unsigned char R, G, B, A;
-	};
+		//WICテクスチャのロード
+	TexMetadata metadata = {};
+	ScratchImage scratchImg = {};
+	result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
+	auto img = scratchImg.GetImage(0, 0, 0);//生データ抽出
+
 	const int TEX_WIDTH = 256;
 	const int TEX_HEIGHT = 256;
 
-	std::vector<TexRGBA> texturedata(TEX_WIDTH * TEX_HEIGHT);
-	for (int iy = 0; iy < TEX_HEIGHT; iy++) {
-		for (int ix = 0; ix < TEX_WIDTH; ix++) {
-			int i = ix + iy * TEX_WIDTH;
-			texturedata[i].R = i % 32 / 16 * 255;
-			texturedata[i].G = 255;
-			texturedata[i].B = 255;
-			texturedata[i].A = 255;
-		}
-	}
+	//struct TexRGBA
+	//{
+	//	unsigned char R, G, B, A;
+	//};
+	//const int TEX_WIDTH = 256;
+	//const int TEX_HEIGHT = 256;
+
+	//std::vector<TexRGBA> texturedata(TEX_WIDTH * TEX_HEIGHT);
+	//for (int iy = 0; iy < TEX_HEIGHT; iy++) {
+	//	for (int ix = 0; ix < TEX_WIDTH; ix++) {
+	//		int i = ix + iy * TEX_WIDTH;
+	//		texturedata[i].R = i % 32 / 16 * 255;
+	//		texturedata[i].G = 255;
+	//		texturedata[i].B = 255;
+	//		texturedata[i].A = 255;
+	//	}
+	//}
 
 	//for (auto& rgba : texturedata) {
 	//	rgba.R = rand() % 256;
@@ -639,12 +650,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		DebugOutputFormatString("FAILED CreateCommittedResource on texHeapprop");
 		return -1;
 	}
-	result = texbuff->WriteToSubresource(
-		0, nullptr, // 全領域へコピー
-		texturedata.data(),    // 元データアドレス
-		sizeof(TexRGBA) * 256, // 1ラインサイズ
-		sizeof(TexRGBA) * texturedata.size() // 全サイズ
+	result = texbuff->WriteToSubresource(0,
+		nullptr,//全領域へコピー
+		img->pixels,//元データアドレス
+		static_cast<UINT>(img->rowPitch),//1ラインサイズ
+		static_cast<UINT>(img->slicePitch)//全サイズ
 	);
+	//result = texbuff->WriteToSubresource(
+	//	0, nullptr, // 全領域へコピー
+	//	texturedata.data(),    // 元データアドレス
+	//	sizeof(TexRGBA) * 256, // 1ラインサイズ
+	//	sizeof(TexRGBA) * texturedata.size() // 全サイズ
+	//	);
 	if (!SUCCEEDED(result)) {
 		DebugOutputFormatString("FAILED WriteToSubresource");
 		return -1;
