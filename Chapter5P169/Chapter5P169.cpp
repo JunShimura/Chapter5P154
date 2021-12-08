@@ -629,7 +629,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	texHeapprop.VisibleNodeMask = 0;
 
 	D3D12_RESOURCE_DESC resDesc = {};
-	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;//RGBAフォーマット
+	resDesc.Format = metadata.format; //メタデータに合わせる		//DXGI_FORMAT_R8G8B8A8_UNORM;//RGBAフォーマット
 	resDesc.Width = TEX_WIDTH;//幅	元は256　 20211124
 	resDesc.Height = TEX_HEIGHT;//高さ 元は256 20211124
 	resDesc.DepthOrArraySize = 1;//2Dで配列でもないので１
@@ -685,7 +685,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	}
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;           // RGBA（0.0f～1.0fに正規化）
+	srvDesc.Format = metadata.format;	//	メタデータに合わせる　DXGI_FORMAT_R8G8B8A8_UNORM;           // RGBA（0.0f～1.0fに正規化）
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;      // 後述
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
 	srvDesc.Texture2D.MipLevels = 1; // ミップマップは使用しないので1
