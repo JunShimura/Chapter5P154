@@ -7,7 +7,8 @@
 #include <d3dcompiler.h>
 #include<vector>
 #include  <DirectXTex.h>
-//#include "..\..\DirectXTex\DirectXTex\d3dx12.h"
+#include  <d3dx12.h>
+
 #ifdef _DEBUG
 #include<iostream>
 #endif
@@ -293,21 +294,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 
-	D3D12_HEAP_PROPERTIES heapprop = {};
-	heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-
-	D3D12_RESOURCE_DESC resdesc = {};
-	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	resdesc.Width = sizeof(vertices);
-	resdesc.Height = 1;
-	resdesc.DepthOrArraySize = 1;
-	resdesc.MipLevels = 1;
-	resdesc.Format = DXGI_FORMAT_UNKNOWN;
-	resdesc.SampleDesc.Count = 1;
-	resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	//D3D12_HEAP_PROPERTIES heapprop = {};
+	//heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	//heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	//heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	D3D12_HEAP_PROPERTIES heapprop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD); // UPLOADヒープとして
+	//D3D12_RESOURCE_DESC resdesc = {};
+	//resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	//resdesc.Width = sizeof(vertices);
+	//resdesc.Height = 1;
+	//resdesc.DepthOrArraySize = 1;
+	//resdesc.MipLevels = 1;
+	//resdesc.Format = DXGI_FORMAT_UNKNOWN;
+	//resdesc.SampleDesc.Count = 1;
+	//resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	//resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	auto resdesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices));
 
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
@@ -595,8 +597,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//WICテクスチャのロード
 	TexMetadata metadata = {};
 	ScratchImage scratchImg = {};
-	//result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
-	result = LoadFromWICFile(L"img/black2white.png", WIC_FLAGS_NONE, &metadata, scratchImg);
+	result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
+	//result = LoadFromWICFile(L"img/black2white.png", WIC_FLAGS_NONE, &metadata, scratchImg);
 	//result = LoadFromWICFile(L"img/black.png", WIC_FLAGS_NONE, &metadata, scratchImg);
 	auto img = scratchImg.GetImage(0, 0, 0);//生データ抽出
 
