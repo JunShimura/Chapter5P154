@@ -298,7 +298,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
 	//heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	//heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	D3D12_HEAP_PROPERTIES heapprop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD); // UPLOADヒープとして
+	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD); // UPLOADヒープとして
 	//D3D12_RESOURCE_DESC resdesc = {};
 	//resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	//resdesc.Width = sizeof(vertices);
@@ -309,13 +309,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//resdesc.SampleDesc.Count = 1;
 	//resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 	//resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	auto resdesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices));
+	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices));
 
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
-		&heapprop,
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&resdesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr, IID_PPV_ARGS(&vertBuff));
 
@@ -343,11 +343,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12Resource* idxBuff = nullptr;
 	//設定は、バッファのサイズ以外頂点バッファの設定を使いまわして
 	//OKだと思います。
-	resdesc.Width = sizeof(indices);	//　バッファサイズのみ変更して使いまわし
+	//resdesc.Width = sizeof(indices);	//　バッファサイズのみ変更して使いまわし
+	// C3DX12で置き換え　preChapter6
+	heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	resDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices));
+
 	result = _dev->CreateCommittedResource(
-		&heapprop,
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&resdesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&idxBuff));
@@ -638,7 +642,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	texHeapprop.CreationNodeMask = 0;
 	texHeapprop.VisibleNodeMask = 0;
 
-	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc = {};
 	resDesc.Format = metadata.format; //メタデータに合わせる		//DXGI_FORMAT_R8G8B8A8_UNORM;//RGBAフォーマット
 	resDesc.Width = metadata.width; //TEX_WIDTH;//幅	元は256　 20211124
 	resDesc.Height = metadata.height;// TEX_HEIGHT;//高さ 元は256 20211124
